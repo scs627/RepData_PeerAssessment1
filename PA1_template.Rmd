@@ -1,25 +1,90 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
 output: 
-  html_document:
-    keep_md: true
+html_document:
+keep_md: true
 ---
 
 
 ## Loading and preprocessing the data
-
-
+Load the data.
+```{r}
+stepsdata <- read.csv("activity/activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
+Calculate the total number of steps taken per day.
+```{r}
+totalsteps <- aggregate(steps ~ date, data = stepsdata, sum)
+print(totalsteps)
+```
 
+Make a histogram of the total number of steps taken per day.
+```{r}
+hist(totalsteps$steps, xlab = "Total number of steps per day", main = "Histogram of total number of steps per day", ylim = c(0,30))
+```
 
+Calculate the mean and median of the total number of steps taken per day.
+```{r}
+mean(totalsteps$steps)
+median(totalsteps$steps)
+```
 
 ## What is the average daily activity pattern?
+Calculate the average number of steps for each 5 minute interval.
+```{r}
+intervals <- aggregate(steps ~ interval, data = stepsdata, mean)
+```
 
+Make a plot of the average number of steps for each 5 minute interval.
+```{r}
+plot(intervals$interval, intervals$steps, type = "l", ylab = "Average number of steps", xlab = "Interval")
+```
 
+Determine which 5 minute interval, on average, contains the maximum number of steps.
+```{r}
+intervals[which.max(intervals$steps),1]
+```
 
 ## Imputing missing values
+Calculate the total number of missing values in the dataset.
+```{r}
+sum(is.na(stepsdata$steps))
+```
 
+Create a new dataset and fill in NA values with the mean for the 5 minute interval.
+```{r}
+NArem <- stepsdata
+NArem$steps <- ifelse(is.na(NArem$steps), intervals$steps[match(NArem$interval, intervals$interval)], NArem$steps)
+head(NArem)
+```
 
+Make a histogram of the total number of steps taken per day.
+```{r}
+totalstepsNArem <- aggregate(steps ~ date, data = NArem, sum)
+hist(totalstepsNArem$steps, xlab = "Total number of steps per day", main = "Histogram of total number of steps per day", ylim = c(0,40))
+```
+
+Calculate mean and median total number of steps taken per day.
+```{r}
+mean(totalstepsNArem$steps)
+median(totalstepsNArem$steps)
+```
+
+Using this strategy for filling in missing values had little impact on the estimates for the mean and median. The updated mean and median values for the total number of steps per day are within 1 step of the originally calculated values.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Add a factor variable to the data set with missing values filled in to indicate whether the day was a weekday or weekend.
+```{r}
+condition <- weekdays(as.Date(stepsdata$date)) == "Saturday" | weekdays(as.Date(stepsdata$date[1])) == "Sunday"
+NArem$day <- ifelse(condition, "weekend", "weekday")
+```
+
+Make a panel plot to compare average steps on a weekend and weekday.
+```{r}
+weekends <- aggregate(steps ~ interval + day, data = NArem, mean)
+library(ggplot2)
+qplot(interval, steps, data = weekends, geom = "line", ylab = "Average number of steps", xlab = "interval") + facet_grid(day ~ .)
+```
+
